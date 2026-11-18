@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✂️ Background Remover | ElijahAmogsus</title>
+  <style>
+    :root {
+      --base: #1e1e2e; --mantle: #181825; --surface0: #313244;
+      --surface1: #45475a; --text: #cdd6f4; --subtext0: #a6adc8;
+      --accent: #89b4fa;
+    }
+
+    * { box-sizing: border-box; transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+
+    html, body {
+      margin: 0; padding: 0; min-height: 100vh; width: 100%;
+      background-color: var(--base); color: var(--text); font-family: monospace;
+    }
+
+    body { display: flex; flex-direction: column; align-items: center; padding: 26px 14px; }
+
+    .back-link { color: var(--accent); text-decoration: none; font-weight: bold; margin-top: 24px; display: inline-block; }
+    .back-link:hover { text-decoration: underline; }
+
+    .theme-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; align-items: center; }
+
+    .theme-btn, .accent-select, .ctrl-btn, .ctrl-select {
+      background-color: var(--mantle); color: var(--text); border: 2px solid var(--surface1);
+      border-radius: 6px; padding: 6px 11px; font-family: monospace; font-weight: bold; cursor: pointer;
+    }
+
+    .theme-btn:hover, .theme-btn.active, .accent-select:hover, .accent-select:focus,
+    .ctrl-btn:hover, .ctrl-btn.active, .ctrl-select:hover, .ctrl-select:focus {
+      border-color: var(--accent); background-color: var(--surface0); outline: none;
+    }
+
+    h1 { color: var(--accent); margin: 0 0 6px 0; font-size: clamp(1.5rem, 6vw, 2rem); text-align: center; }
+    p { color: var(--subtext0); margin: 0 0 20px 0; text-align: center; }
+
+    .box { width: 100%; max-width: 820px; background-color: var(--mantle); border: 2px solid var(--surface1); border-radius: 10px; padding: 20px; }
+
+    .drop-zone { border: 2px dashed var(--surface1); border-radius: 8px; padding: 32px 16px; text-align: center; cursor: pointer; background-color: var(--base); }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background-color: var(--surface0); }
+
+    .editor { display: none; margin-top: 18px; }
+    .editor.active { display: block; }
+
+    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .control-group { display: flex; flex-direction: column; gap: 6px; background-color: var(--base); border: 2px solid var(--surface1); border-radius: 8px; padding: 12px; }
+    label { color: var(--subtext0); font-size: 0.88rem; font-weight: bold; }
+
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    input[type="color"] { width: 42px; height: 32px; border: 2px solid var(--surface1); border-radius: 5px; background: transparent; cursor: pointer; padding: 1px; }
+
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .canvas-frame {
+      width: 100%; min-height: 260px; max-height: 460px; overflow: auto;
+      border: 2px solid var(--surface1); border-radius: 8px; padding: 12px;
+      display: flex; justify-content: center; align-items: center;
+      background-image:
+        linear-gradient(45deg, #2a2b3d 25%, transparent 25%),
+        linear-gradient(-45deg, #2a2b3d 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #2a2b3d 75%),
+        linear-gradient(-45deg, transparent 75%, #2a2b3d 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      background-color: #1f202e;
+    }
+
+    canvas#workCanvas {
+      max-width: 100%; max-height: 430px; height: auto; display: block;
+      cursor: crosshair; border-radius: 4px;
+    }
+
+    .hint { color: var(--subtext0); font-size: 0.85rem; text-align: center; margin-top: 10px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .btn { flex: 1; min-width: 140px; padding: 10px 14px; border: 2px solid var(--accent); border-radius: 6px; background-color: var(--accent); color: var(--base); font-family: monospace; font-weight: bold; font-size: 0.95rem; cursor: pointer; }
+    .btn:hover { opacity: 0.92; }
+    .btn.secondary { background-color: var(--base); color: var(--text); border-color: var(--surface1); }
+    .btn.secondary:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="theme-bar">
+    <button class="theme-btn active" onclick="setTheme('mocha')">🌿 Mocha</button>
+    <button class="theme-btn" onclick="setTheme('macchiato')">🌺 Macchiato</button>
+    <button class="theme-btn" onclick="setTheme('frappe')">🪴 Frappé</button>
+    <button class="theme-btn" onclick="setTheme('latte')">🌻 Latte</button>
+    <select id="accentSelect" class="accent-select" onchange="setAccent(this.value)" aria-label="Accent Color">
+      <option value="rosewater">🌸 Rosewater</option>
+      <option value="flamingo">🦩 Flamingo</option>
+      <option value="pink">💖 Pink</option>
+      <option value="mauve">🔮 Mauve</option>
+      <option value="red">🍎 Red</option>
+      <option value="maroon">🍒 Maroon</option>
+      <option value="peach">🍑 Peach</option>
+      <option value="yellow">🍋 Yellow</option>
+      <option value="green">🍏 Green</option>
+      <option value="teal">🌊 Teal</option>
+      <option value="sky">☁️ Sky</option>
+      <option value="sapphire">💎 Sapphire</option>
+      <option value="blue" selected>💙 Blue</option>
+      <option value="lavender">🪻 Lavender</option>
+    </select>
+  </div>
+
+  <h1>✂️ Background Remover</h1>
+  <p>Auto-cut solid backgrounds or click any spot to erase it offline</p>
+
+  <div class="box">
+    <div class="drop-zone" id="dropZone">
+      <strong>Drop any image here or click to browse</strong>
+      <div style="color: var(--subtext0); font-size: 0.85rem; margin-top: 6px;">PNG, JPG, WEBP, SVG, BMP, ICO, AVIF, TIFF</div>
+      <input type="file" id="fileInput" accept="image/*,.png,.jpg,.jpeg,.webp,.svg,.bmp,.ico,.avif,.tif,.tiff" hidden>
+    </div>
+
+    <div class="editor" id="editor">
+      <div class="controls">
+        <div class="control-group">
+          <label>Removal Mode</label>
+          <div class="row">
+            <button class="ctrl-btn active" id="modeMagic" onclick="setMode('magic')">🪄 Magic Wand</button>
+            <button class="ctrl-btn" id="modeGlobal" onclick="setMode('global')">🌐 Global Color</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="tolSlider">Tolerance: <span id="tolVal">32</span></label>
+          <input type="range" id="tolSlider" min="1" max="140" value="32">
+        </div>
+
+        <div class="control-group">
+          <label for="featherSlider">Edge Smoothness: <span id="featherVal">6</span></label>
+          <input type="range" id="featherSlider" min="0" max="20" value="6">
+        </div>
+
+        <div class="control-group">
+          <label for="targetColor">Target Color</label>
+          <div class="row">
+            <input type="color" id="targetColor" value="#ffffff">
+            <span id="colorHex" style="font-weight: bold;">#ffffff</span>
+            <button class="ctrl-btn" onclick="autoCutCorners()">✨ Auto-Cut</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-frame">
+        <canvas id="workCanvas"></canvas>
+      </div>
+      <div class="hint" id="statusHint">💡 Tip: Click anywhere on the image to erase that background area!</div>
+
+      <div class="actions">
+        <button class="ctrl-btn" onclick="undoStep()">↩️ Undo</button>
+        <button class="ctrl-btn" onclick="resetImage()">🔄 Reset</button>
+        <select id="exportFormat" class="ctrl-select" aria-label="Export Format">
+          <option value="png" selected>PNG (Transparent)</option>
+          <option value="webp">WEBP (Transparent)</option>
+          <option value="ico">ICO (64×64)</option>
+          <option value="svg">SVG</option>
+        </select>
+        <button class="btn" onclick="downloadCutout()">⬇️ Download Cutout</button>
+        <button class="btn secondary" onclick="clearAll()">New Image</button>
+      </div>
+    </div>
+  </div>
+
+  <a href="/" class="back-link">← Back to Dev Hub</a>
+    <script>
+    const themes = {
+      mocha: {
+        base: '#1e1e2e', mantle: '#181825', surface0: '#313244', surface1: '#45475a', text: '#cdd6f4', subtext0: '#a6adc8',
+        accents: { rosewater: '#f5e0dc', flamingo: '#f2cdcd', pink: '#f5c2e7', mauve: '#cba6f7', red: '#f38ba8', maroon: '#eba0ac', peach: '#fab387', yellow: '#f9e2af', green: '#a6e3a1', teal: '#94e2d5', sky: '#89dceb', sapphire: '#74c7ec', blue: '#89b4fa', lavender: '#b4befe' }
+      },
+      macchiato: {
+        base: '#24273a', mantle: '#1e2030', surface0: '#363a4f', surface1: '#494d64', text: '#cad3f5', subtext0: '#a5adcb',
+        accents: { rosewater: '#f4dbd6', flamingo: '#f0c6c6', pink: '#f5bde6', mauve: '#c6a0f6', red: '#ed8796', maroon: '#ee99a0', peach: '#f5a97f', yellow: '#eed49f', green: '#a6da95', teal: '#8bd5ca', sky: '#91d7e3', sapphire: '#7dc4e4', blue: '#8aadf4', lavender: '#b7bdf8' }
+      },
+      frappe: {
+        base: '#303446', mantle: '#292c3c', surface0: '#414559', surface1: '#51576d', text: '#c6d0f5', subtext0: '#a5adce',
+        accents: { rosewater: '#f2d5cf', flamingo: '#eebebe', pink: '#f4b8e4', mauve: '#ca9ee6', red: '#e78284', maroon: '#ea999c', peach: '#ef9f76', yellow: '#e5c890', green: '#a6d189', teal: '#81c8be', sky: '#99d1db', sapphire: '#85c1dc', blue: '#8caaee', lavender: '#babbf1' }
+      },
+      latte: {
+        base: '#eff1f5', mantle: '#e6e9ef', surface0: '#ccd0da', surface1: '#bcc0cc', text: '#4c4f69', subtext0: '#6c6f85',
+        accents: { rosewater: '#dc8a78', flamingo: '#dd7878', pink: '#ea76cb', mauve: '#8839ef', red: '#d20f39', maroon: '#e64553', peach: '#fe640b', yellow: '#df8e1d', green: '#40a02b', teal: '#179299', sky: '#04a5e5', sapphire: '#209fb5', blue: '#1e66f5', lavender: '#7287fd' }
+      }
+    };
+
+    let currentTheme = localStorage.getItem('catppuccin-theme') || 'mocha';
+    let currentAccent = localStorage.getItem('catppuccin-accent') || 'blue';
+
+    function applyPalette() {
+      const p = themes[currentTheme] || themes.mocha;
+      const root = document.documentElement.style;
+      for (const [k, v] of Object.entries(p)) {
+        if (k !== 'accents') root.setProperty('--' + k, v);
+      }
+      root.setProperty('--accent', p.accents[currentAccent] || p.accents.blue);
+      document.querySelectorAll('.theme-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('onclick').includes("'" + currentTheme + "'"));
+      });
+      document.getElementById('accentSelect').value = currentAccent;
+    }
+
+    function setTheme(name) { currentTheme = name; localStorage.setItem('catppuccin-theme', name); applyPalette(); }
+    function setAccent(accent) { currentAccent = accent; localStorage.setItem('catppuccin-accent', accent); applyPalette(); }
+    applyPalette();
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const editor = document.getElementById('editor');
+    const canvas = document.getElementById('workCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const tolSlider = document.getElementById('tolSlider');
+    const tolVal = document.getElementById('tolVal');
+    const featherSlider = document.getElementById('featherSlider');
+    const featherVal = document.getElementById('featherVal');
+    const targetColorInput = document.getElementById('targetColor');
+    const colorHexLabel = document.getElementById('colorHex');
+    const statusHint = document.getElementById('statusHint');
+
+    let originalData = null;
+    let undoStack = Array.of();
+    let mode = 'magic';
+    let fileName = 'cutout';
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById('modeMagic').classList.toggle('active', m === 'magic');
+      document.getElementById('modeGlobal').classList.toggle('active', m === 'global');
+    }
+
+    function hexToRgb(hex) {
+      const clean = hex.replace('#', '');
+      return {
+        r: parseInt(clean.slice(0, 2), 16),
+        g: parseInt(clean.slice(2, 4), 16),
+        b: parseInt(clean.slice(4, 6), 16)
+      };
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + Array.of(r, g, b).map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+
+    function colorDist(r1, g1, b1, r2, g2, b2) {
+      const dr = r1 - r2;
+      const dg = g1 - g2;
+      const db = b1 - b2;
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    function saveUndo() {
+      const snap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      undoStack.push(snap);
+      if (undoStack.length > 20) undoStack.shift();
+    }
+
+    function undoStep() {
+      if (!undoStack.length) return;
+      const prev = undoStack.pop();
+      ctx.putImageData(prev, 0, 0);
+      statusHint.textContent = '↩️ Undid last cut.';
+    }
+
+    function resetImage() {
+      if (!originalData) return;
+      saveUndo();
+      ctx.putImageData(originalData, 0, 0);
+      statusHint.textContent = '🔄 Reset to original image.';
+    }
+
+    function removeFromPoint(startX, startY, tr, tg, tb) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const img = ctx.getImageData(0, 0, w, h);
+      const data = img.data;
+      const tol = parseInt(tolSlider.value, 10) * 2.2;
+      const feather = parseInt(featherSlider.value, 10) * 2.5;
+      const maxDist = tol + feather;
+
+      saveUndo();
+      let removed = 0;
+
+      if (mode === 'global') {
+        const total = w * h;
+        for (let p = 0; p < total; p++) {
+          const o = p * 4;
+          const a = data.at(o + 3);
+          if (a === 0) continue;
+          const d = colorDist(data.at(o), data.at(o + 1), data.at(o + 2), tr, tg, tb);
+          if (d <= tol) {
+            data.set(Array.of(0), o + 3);
+            removed++;
+          } else if (d < maxDist && feather > 0) {
+            const ratio = (d - tol) / feather;
+            const newA = Math.min(a, Math.round(a * ratio));
+            data.set(Array.of(newA), o + 3);
+            removed++;
+          }
+        }
+      } else {
+        const visited = new Uint8Array(w * h);
+        const queue = new Int32Array(w * h);
+        let head = 0;
+        let tail = 0;
+        const startIdx = startY * w + startX;
+        visited.set(Array.of(1), startIdx);
+        queue.set(Array.of(startIdx), tail++);
+
+        while (head < tail) {
+          const idx = queue.at(head++);
+          const o = idx * 4;
+          const a = data.at(o + 3);
+          const d = a === 0 ? 0 : colorDist(data.at(o), data.at(o + 1), data.at(o + 2), tr, tg, tb);
+
+          if (d <= maxDist) {
+            if (d <= tol) {
+              data.set(Array.of(0), o + 3);
+              removed++;
+            } else if (feather > 0) {
+              const ratio = (d - tol) / feather;
+              const newA = Math.min(a, Math.round(a * ratio));
+              data.set(Array.of(newA), o + 3);
+              removed++;
+            }
+
+            if (d <= tol + feather * 0.4) {
+              const x = idx % w;
+              const y = (idx - x) / w;
+              if (x > 0 && !visited.at(idx - 1)) { visited.set(Array.of(1), idx - 1); queue.set(Array.of(idx - 1), tail++); }
+              if (x + 1 < w && !visited.at(idx + 1)) { visited.set(Array.of(1), idx + 1); queue.set(Array.of(idx + 1), tail++); }
+              if (y > 0 && !visited.at(idx - w)) { visited.set(Array.of(1), idx - w); queue.set(Array.of(idx - w), tail++); }
+              if (y + 1 < h && !visited.at(idx + w)) { visited.set(Array.of(1), idx + w); queue.set(Array.of(idx + w), tail++); }
+            }
+          }
+        }
+      }
+
+      ctx.putImageData(img, 0, 0);
+      statusHint.textContent = '✂️ Erased ' + removed.toLocaleString() + ' pixels! Click another spot or download.';
+    }
+
+    function autoCutCorners() {
+      if (!originalData) return;
+      ctx.putImageData(originalData, 0, 0);
+      const w = canvas.width;
+      const h = canvas.height;
+      const corners = Array.of(
+        { x: 0, y: 0 },
+        { x: w - 1, y: 0 },
+        { x: 0, y: h - 1 },
+        { x: w - 1, y: h - 1 }
+      );
+      const p0 = ctx.getImageData(0, 0, 1, 1).data;
+      const hex = rgbToHex(p0.at(0), p0.at(1), p0.at(2));
+      targetColorInput.value = hex;
+      colorHexLabel.textContent = hex;
+
+      for (let i = 0; i < corners.length; i++) {
+        const c = corners.at(i);
+        const px = ctx.getImageData(c.x, c.y, 1, 1).data;
+        if (px.at(3) > 0 && colorDist(px.at(0), px.at(1), px.at(2), p0.at(0), p0.at(1), p0.at(2)) < 45) {
+          removeFromPoint(c.x, c.y, px.at(0), px.at(1), px.at(2));
+          if (mode === 'global') break;
+        }
+      }
+      undoStack = Array.of();
+    }
+          canvas.addEventListener('pointerdown', e => {
+      if (!originalData) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.min(canvas.width - 1, Math.max(0, Math.floor(((e.clientX - rect.left) / rect.width) * canvas.width)));
+      const y = Math.min(canvas.height - 1, Math.max(0, Math.floor(((e.clientY - rect.top) / rect.height) * canvas.height)));
+      const px = ctx.getImageData(x, y, 1, 1).data;
+      if (px.at(3) === 0) return;
+
+      const hex = rgbToHex(px.at(0), px.at(1), px.at(2));
+      targetColorInput.value = hex;
+      colorHexLabel.textContent = hex;
+      removeFromPoint(x, y, px.at(0), px.at(1), px.at(2));
+    });
+
+    targetColorInput.addEventListener('input', e => {
+      colorHexLabel.textContent = e.target.value;
+      const rgb = hexToRgb(e.target.value);
+      removeFromPoint(0, 0, rgb.r, rgb.g, rgb.b);
+    });
+
+    tolSlider.addEventListener('input', () => { tolVal.textContent = tolSlider.value; });
+    featherSlider.addEventListener('input', () => { featherVal.textContent = featherSlider.value; });
+
+    async function encodeICO(srcCanvas) {
+      const size = 64;
+      const icoCanvas = document.createElement('canvas');
+      icoCanvas.width = size;
+      icoCanvas.height = size;
+      icoCanvas.getContext('2d').drawImage(srcCanvas, 0, 0, size, size);
+
+      const pngBlob = await new Promise(res => icoCanvas.toBlob(res, 'image/png'));
+      const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+      const icoBuffer = new ArrayBuffer(22 + pngBytes.length);
+      const view = new DataView(icoBuffer);
+
+      view.setUint16(0, 0, true);
+      view.setUint16(2, 1, true);
+      view.setUint16(4, 1, true);
+      view.setUint8(6, size);
+      view.setUint8(7, size);
+      view.setUint16(10, 1, true);
+      view.setUint16(12, 32, true);
+      view.setUint32(14, pngBytes.length, true);
+      view.setUint32(18, 22, true);
+
+      new Uint8Array(icoBuffer, 22).set(pngBytes);
+      return new Blob(Array.of(icoBuffer), { type: 'image/x-icon' });
+    }
+
+    async function downloadCutout() {
+      if (!originalData) return;
+      const fmt = document.getElementById('exportFormat').value;
+      const outName = fileName + '-nobg.' + fmt;
+      let blob;
+
+      if (fmt === 'svg') {
+        const w = canvas.width;
+        const h = canvas.height;
+        const dataUrl = canvas.toDataURL('image/png');
+        const svg = '<svg xmlns="http://w3.org" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><image href="' + dataUrl + '" width="' + w + '" height="' + h + '"/></svg>';
+        blob = new Blob(Array.of(svg), { type: 'image/svg+xml' });
+      } else if (fmt === 'ico') {
+        blob = await encodeICO(canvas);
+      } else if (fmt === 'webp') {
+        blob = await new Promise(res => canvas.toBlob(res, 'image/webp', 0.95));
+      } else {
+        blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = outName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      fileName = file.name.replace(/\.[^/.]+$/, '');
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          canvas.width = img.naturalWidth || 512;
+          canvas.height = img.naturalHeight || 512;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          undoStack = Array.of();
+          dropZone.style.display = 'none';
+          editor.classList.add('active');
+          autoCutCorners();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearAll() {
+      originalData = null;
+      undoStack = Array.of();
+      fileInput.value = '';
+      editor.classList.remove('active');
+      dropZone.style.display = 'block';
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files ? e.target.files.item(0) : null;
+      if (file) handleFile(file);
+    });
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files ? e.dataTransfer.files.item(0) : null;
+      if (file) handleFile(file);
+    });
+
+    window.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undoStep();
+      }
+    });
+  </script>
+</body>
+</html>
